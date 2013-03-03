@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+body {
+    background: black;
+}
+.country {
+    fill: #0D171B;
+    stroke: #222222;
+    stroke-dasharray: 1, 1;
+    stroke-width: 0.5px;
+}
+
+</style>
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://d3js.org/queue.v1.min.js"></script>
+<script src="http://d3js.org/topojson.v0.min.js"></script>
+<script>
+
+var width = 960, height = 500;
+
+var projection = d3.geo.mercator();
+var svg = d3.select('body').append('svg')
+    .attr('width', width).attr('height', height);
+
+var path = d3.geo.path()
+    .projection(projection);
+
+queue()
+    .defer(d3.json, 'countries.topo.json')
+    .defer(d3.csv, 'volunteer_countries.csv')
+    .await(ready);
+
+function ready(error, world, volunteer_countries) {
+    // volunteer_countries is:
+    // post_cntry_num, post_cntry_name, hs_state, count
+    country_to_state = d3.nest()
+        .key(function(d) { return d.post_cntry_name.toLowerCase(); })
+        .key(function(d) { return d.hs_state; })
+        .rollup(function(entries) { return +entries[0].count; })
+        .map(volunteer_countries);
+    state_to_country = d3.nest()
+        .key(function(d) { return d.hs_state; })
+        .key(function(d) { return d.post_cntry_name.toLowerCase(); })
+        .rollup(function(entries) { return +entries[0].count; })
+        .map(volunteer_countries);
+    var id2name = {}, name2id = {};
+    countries = topojson.object(world, world.objects.countries).geometries;
+    countries.forEach(function(d) { id2name[d.id] = d.properties.name; });
+    svg.selectAll('path')
+        .data(countries)
+    .enter().append('svg:path')
+        .attr('d', path)
+        .attr('class', 'country')
+        .attr('id', function(d) { return 'country-'+d.id});
+}
+</script>
+</body>
