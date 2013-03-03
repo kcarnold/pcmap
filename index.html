@@ -1,14 +1,20 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <style>
+/* 292929,ABABAB,3F6B38,48A1A8,87563B, */
+
 body {
-    background: black;
+    background: #292929;
 }
 .country {
-    fill: #0D171B;
-    stroke: #222222;
-    stroke-dasharray: 1, 1;
-    stroke-width: 0.5px;
+    fill: #ABABAB;
+    stroke: #292929;
+    /*stroke-dasharray: 1, 1;*/
+    /*stroke-width: 0.5px;*/
+}
+
+.country.selected {
+    fill: #3F6B38;
 }
 
 </style>
@@ -53,7 +59,8 @@ function ready(error, world, volunteer_countries) {
         .data(countries)
     .enter().append('svg:path')
         .attr('d', path).attr('class', 'country').attr('id', function(d) { return 'country-'+d.id})
-        .on('mouseenter', function(d) { console.log(d.id, d.properties.name)});
+        .on('mouseenter', function(d) { console.log(d.id, d.properties.name); d3.select(this).classed('selected', true); })
+        .on('mouseleave', function(d) { console.log(d.id, d.properties.name); d3.select(this).classed('selected', false); });
 }
 </script>
 </body>
