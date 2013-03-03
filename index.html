@@ -48,12 +48,12 @@ function ready(error, world, volunteer_countries) {
     var id2name = {}, name2id = {};
     countries = topojson.object(world, world.objects.countries).geometries;
     countries.forEach(function(d) { id2name[d.id] = d.properties.name; });
-    svg.selectAll('path')
+
+    svg.selectAll('path.country')
         .data(countries)
     .enter().append('svg:path')
-        .attr('d', path)
-        .attr('class', 'country')
-        .attr('id', function(d) { return 'country-'+d.id});
+        .attr('d', path).attr('class', 'country').attr('id', function(d) { return 'country-'+d.id})
+        .on('mouseenter', function(d) { console.log(d.id, d.properties.name)});
 }
 </script>
 </body>
