@@ -6,6 +6,11 @@
 body {
     background: #292929;
 }
+
+.state {
+    fill: #ABABAB;
+    stroke: #292929;
+}
 .country {
     fill: #ABABAB;
     stroke: #292929;
@@ -35,10 +40,11 @@ var path = d3.geo.path()
 
 queue()
     .defer(d3.json, 'countries.topo.json')
+    .defer(d3.json, 'states.topo.json')
     .defer(d3.csv, 'volunteer_countries.csv')
     .await(ready);
 
-function ready(error, world, volunteer_countries) {
+function ready(error, world, states_topo, volunteer_countries) {
     // volunteer_countries is:
     // post_cntry_num, post_cntry_name, hs_state, count
     country_to_state = d3.nest()
@@ -55,12 +61,16 @@ function ready(error, world, volunteer_countries) {
     countries = topojson.object(world, world.objects.countries).geometries;
     countries.forEach(function(d) { id2name[d.id] = d.properties.name; });
 
-    svg.selectAll('path.country')
-        .data(countries)
-    .enter().append('svg:path')
-        .attr('d', path).attr('class', 'country').attr('id', function(d) { return 'country-'+d.id})
+    svg.selectAll('path.country').data(countries)
+      .enter().append('svg:path')
+        .attr('d', path).attr('class', 'country').attr('id', function(d) { return 'country-'+d.id; })
         .on('mouseenter', function(d) { console.log(d.id, d.properties.name); d3.select(this).classed('selected', true); })
         .on('mouseleave', function(d) { console.log(d.id, d.properties.name); d3.select(this).classed('selected', false); });
+
+    var states = topojson.object(states_topo, states_topo.objects.states).geometries;
+    svg.selectAll('path.state').data(states)
+      .enter().append('svg:path')
+        .attr('d', path).attr('class', 'state').attr('id', function(d) { return 'state-'+d.id; });
 }
 </script>
 </body>
