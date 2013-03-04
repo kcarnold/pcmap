@@ -8,27 +8,17 @@ body {
 }
 
 .states path {
-    fill: #ABABAB;
+    fill: #FFF7FB;
     stroke: #292929;
     transition: fill 1s ease;
 }
 .countries path {
-    fill: black;
+    fill: #FFF7FB;
     stroke: #292929;
     transition: fill 1s ease;
     /*stroke-dasharray: 1, 1;*/
     /*stroke-width: 0.5px;*/
 }
-
-.PuBu .q0-9{fill:rgb(255,247,251)}
-.PuBu .q1-9{fill:rgb(236,231,242)}
-.PuBu .q2-9{fill:rgb(208,209,230)}
-.PuBu .q3-9{fill:rgb(166,189,219)}
-.PuBu .q4-9{fill:rgb(116,169,207)}
-.PuBu .q5-9{fill:rgb(54,144,192)}
-.PuBu .q6-9{fill:rgb(5,112,176)}
-.PuBu .q7-9{fill:rgb(4,90,141)}
-.PuBu .q8-9{fill:rgb(2,56,88)}
 
 </style>
 <body>
@@ -40,7 +30,7 @@ body {
 
 var width = 960, height = 500;
 
-var projection = d3.geo.mercator();
+var projection = d3.geo.mercator().scale(500);
 var svg = d3.select('body').append('svg')
     .attr('width', width).attr('height', height);
 
@@ -135,21 +125,20 @@ function ready(error, world, states_topo, volunteer_countries) {
     function setStateHighlights(activeCountry) {
         if (!_.has(country_to_state, activeCountry)) activeCountry = null;
         var total = activeCountry ? total_from_country[activeCountry] : total_total;
-        var scale = d3.scale.quantize()
-            .domain([0, total/100])
-            .range(d3.range(9));
+        var scale = d3.scale.linear()
+            .domain([0, 1])
+            .range(['#FFF7FB', '#023858']);
         var byState = activeCountry ? country_to_state[activeCountry] : total_from_state;
-        console.log(byState);
-        d3.selectAll('.states path').attr('class', function(d) { return 'q' + scale(byState[d.id]) + '-9'; });
+        d3.selectAll('.states path').style('fill', function(d) { return scale(Math.min(1, byState[d.id] / (total/100))); });
     }
 
     function setCountryHighlights(activeState) {
         var total = activeState ? total_from_state[activeState] : total_total;
-        var scale = d3.scale.quantize()
-            .domain([0, total/100])
-            .range(d3.range(9));
+        var scale = d3.scale.linear()
+            .domain([0, 1])
+            .range(['#FFF7FB', '#023858']);
         var byCountry = activeState ? state_to_country[activeState] : total_from_country;
-        d3.selectAll('.countries path').attr('class', function(d) { return 'q' + scale(byCountry[d.id]) + '-9'; });
+        d3.selectAll('.countries path').style('fill', function(d) { return scale(Math.min(1, byCountry[d.id] / (total/100))); });
     }
 
     var countries_g = svg.append('g').attr('class', 'countries PuBu');
