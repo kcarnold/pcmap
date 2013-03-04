@@ -132,7 +132,7 @@ function ready(error, world, states_topo, volunteer_countries) {
         var total = activeCountry ? total_from_country[activeCountry] : total_total;
         var scale = d3.scale.linear()
             .domain([0, 1])
-            .range(['#FFF7FB', '#023858']);
+            .range(['#F7FCFD', '#00441B']);
         var byState = activeCountry ? country_to_state[activeCountry] : total_from_state;
         d3.selectAll('.states path').style('fill', function(d) { return scale(Math.min(1, byState[d.id] / (total/100))); });
     }
