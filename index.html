@@ -7,26 +7,37 @@ body {
     background: #292929;
 }
 
-.state {
+.states path {
     fill: #ABABAB;
     stroke: #292929;
 }
-.country {
+.countries path {
     fill: #ABABAB;
     stroke: #292929;
     /*stroke-dasharray: 1, 1;*/
     /*stroke-width: 0.5px;*/
 }
 
-.country.selected {
+.countries .selected {
     fill: #3F6B38;
 }
+
+.PuBu .q0-9{fill:rgb(255,247,251)}
+.PuBu .q1-9{fill:rgb(236,231,242)}
+.PuBu .q2-9{fill:rgb(208,209,230)}
+.PuBu .q3-9{fill:rgb(166,189,219)}
+.PuBu .q4-9{fill:rgb(116,169,207)}
+.PuBu .q5-9{fill:rgb(54,144,192)}
+.PuBu .q6-9{fill:rgb(5,112,176)}
+.PuBu .q7-9{fill:rgb(4,90,141)}
+.PuBu .q8-9{fill:rgb(2,56,88)}
 
 </style>
 <body>
 <script src="http://d3js.org/d3.v3.min.js"></script>
 <script src="http://d3js.org/queue.v1.min.js"></script>
 <script src="http://d3js.org/topojson.v0.min.js"></script>
+<script src="underscore.js"></script>
 <script>
 
 var width = 960, height = 500;
@@ -44,33 +55,116 @@ queue()
     .defer(d3.csv, 'volunteer_countries.csv')
     .await(ready);
 
+function sum(arr) {
+    return _.reduce(arr, function(a, b) { return (+a) + (+b); }, 0);
+}
+
+function kvMap(obj, fn) {
+    var res = {};
+    _.forEach(obj, function(val, key) {
+        var tmp = fn(key, val);
+        res[tmp[0]] = tmp[1];
+    });
+    return res;
+}
+
 function ready(error, world, states_topo, volunteer_countries) {
     // volunteer_countries is:
     // post_cntry_num, post_cntry_name, hs_state, count
+
+    id2name = {};
+    name2id = {};
+    countries = topojson.object(world, world.objects.countries).geometries;
+    countries.forEach(function(d) {
+        id2name[d.id] = d.properties.name;
+        name2id[d.properties.name.toLowerCase()] = d.id;
+    });
+
+    _.extend(name2id, {
+        'solomon islands': 'SLB', // Solomon Islands
+        'car': 'CAF', // Central African Republic
+        'png': 'PNG', // Papua New Guinea
+        'zaire': 'COD', // Democratic Republic of the Congo
+        'dominican republic': 'DOM',
+        "cook islands": "cook islands",
+        "cote d ivoire": "cote d ivoire",
+        "czech":"czech",
+        "east timor": "east timor",
+        "eastern caribbean": "eastern caribbean",
+        "equatorial guinea": "equatorial guinea",
+        "guinea bissau":"guinea bissau",
+        "korea south":"korea south",
+        "leeward islands":"leeward islands",
+        "marshall islands":"marshall islands",
+        "russia far east":"russia far east",
+        "russia western":"russia western",
+        "sao tome":"sao tome",
+        "sav":"sav",
+        "tuvalu":"tuvalu",
+        "windward islands":"windward islands"
+    });
+
+    faileds = {};
+    function pcNameToId(name) {
+        name = name.toLowerCase();
+        if (_.has(name2id, name)) {
+            return name2id[name];
+        }
+        faileds[name] = name;
+    }
+
+
     country_to_state = d3.nest()
-        .key(function(d) { return d.post_cntry_name.toLowerCase(); })
+        .key(function(d) { return pcNameToId(d.post_cntry_name); })
         .key(function(d) { return d.hs_state; })
-        .rollup(function(entries) { return +entries[0].count; })
+        .rollup(function(entries) { return sum(_.pluck(entries, 'count')); })
         .map(volunteer_countries);
     state_to_country = d3.nest()
         .key(function(d) { return d.hs_state; })
-        .key(function(d) { return d.post_cntry_name.toLowerCase(); })
-        .rollup(function(entries) { return +entries[0].count; })
+        .key(function(d) { return pcNameToId(d.post_cntry_name); })
+        .rollup(function(entries) { return sum(_.pluck(entries, 'count')); })
         .map(volunteer_countries);
-    var id2name = {}, name2id = {};
-    countries = topojson.object(world, world.objects.countries).geometries;
-    countries.forEach(function(d) { id2name[d.id] = d.properties.name; });
 
-    svg.selectAll('path.country').data(countries)
+    var total_from_country = kvMap(country_to_state, function(country, states) {
+        return [country, sum(_.values(states))];
+    });
+    var total_from_state = kvMap(state_to_country, function(state, countries) {
+        return [state, sum(_.values(countries))];
+    });
+    var total_total = sum(_.values(total_from_country));
+    window.total_from_state = total_from_state;
+
+    function setStateHighlights(activeCountry) {
+        if (!_.has(country_to_state, activeCountry)) activeCountry = null;
+        var total = activeCountry ? total_from_country[activeCountry] : total_total;
+        var scale = d3.scale.quantize()
+            .domain([0, total/100])
+            .range(d3.range(9));
+        var byState = activeCountry ? country_to_state[activeCountry] : total_from_state;
+        console.log(byState);
+        d3.selectAll('.states path').attr('class', function(d) { return 'q' + scale(byState[d.id]) + '-9'; })
+    }
+
+    var countries_g = svg.append('g').attr('class', 'countries');
+    countries_g.selectAll('path').data(countries)
       .enter().append('svg:path')
-        .attr('d', path).attr('class', 'country').attr('id', function(d) { return 'country-'+d.id; })
-        .on('mouseenter', function(d) { console.log(d.id, d.properties.name); d3.select(this).classed('selected', true); })
+        .attr('d', path).attr('id', function(d) { return 'country-'+d.id; })
+        .on('mouseenter', function(d) {
+            //console.log(d.id, d.properties.name);
+            d3.select(this).classed('selected', true);
+            setStateHighlights(d.id);
+        })
         .on('mouseleave', function(d) { console.log(d.id, d.properties.name); d3.select(this).classed('selected', false); });
 
     var states = topojson.object(states_topo, states_topo.objects.states).geometries;
-    svg.selectAll('path.state').data(states)
+    var states_g = svg.append('g').attr('class', 'states PuBu');
+    states_g.selectAll('path').data(states)
       .enter().append('svg:path')
-        .attr('d', path).attr('class', 'state').attr('id', function(d) { return 'state-'+d.id; });
+        .attr('d', path).attr('id', function(d) { return 'state-'+d.id; });
+
+    setStateHighlights();
+
+
 }
 </script>
 </body>
