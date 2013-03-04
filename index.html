@@ -142,10 +142,19 @@ function ready(error, world, states_topo, volunteer_countries) {
             .range(d3.range(9));
         var byState = activeCountry ? country_to_state[activeCountry] : total_from_state;
         console.log(byState);
-        d3.selectAll('.states path').attr('class', function(d) { return 'q' + scale(byState[d.id]) + '-9'; })
+        d3.selectAll('.states path').attr('class', function(d) { return 'q' + scale(byState[d.id]) + '-9'; });
     }
 
-    var countries_g = svg.append('g').attr('class', 'countries');
+    function setCountryHighlights(activeState) {
+        var total = activeState ? total_from_state[activeState] : total_total;
+        var scale = d3.scale.quantize()
+            .domain([0, total/100])
+            .range(d3.range(9));
+        var byCountry = activeState ? state_to_country[activeState] : total_from_country;
+        d3.selectAll('.countries path').attr('class', function(d) { return 'q' + scale(byCountry[d.id]) + '-9'; });
+    }
+
+    var countries_g = svg.append('g').attr('class', 'countries PuBu');
     countries_g.selectAll('path').data(countries)
       .enter().append('svg:path')
         .attr('d', path).attr('id', function(d) { return 'country-'+d.id; })
@@ -154,16 +163,26 @@ function ready(error, world, states_topo, volunteer_countries) {
             d3.select(this).classed('selected', true);
             setStateHighlights(d.id);
         })
-        .on('mouseleave', function(d) { console.log(d.id, d.properties.name); d3.select(this).classed('selected', false); });
+        .on('mouseleave', function(d) {
+            //console.log(d.id, d.properties.name);
+            d3.select(this).classed('selected', false);
+            setStateHighlights();
+        });
 
     var states = topojson.object(states_topo, states_topo.objects.states).geometries;
     var states_g = svg.append('g').attr('class', 'states PuBu');
     states_g.selectAll('path').data(states)
       .enter().append('svg:path')
-        .attr('d', path).attr('id', function(d) { return 'state-'+d.id; });
+        .attr('d', path).attr('id', function(d) { return 'state-'+d.id; })
+        .on('mouseenter', function(d) {
+            setCountryHighlights(d.id);
+        })
+        .on('mouseleave', function(d) {
+            setCountryHighlights();
+        });
 
     setStateHighlights();
-
+    setCountryHighlights();
 
 }
 </script>
